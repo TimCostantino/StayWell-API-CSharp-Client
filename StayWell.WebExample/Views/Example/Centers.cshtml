@@ -1,7 +1,319 @@
-﻿
+﻿@using StayWell.ServiceDefinitions.Content.Objects
+@using StayWell.WebExample.Models
+
 @{
-    ViewBag.Title = "Center";
+    ViewBag.Title = "Centers";
 }
 
-<h2>Center</h2>
+<div class="section-header">
+    <h1>Health Centers</h1>
+</div>
 
+<span id="LoadingCenters" class="loading-indicator"><img src='/Images/ajax-loader-indicator-lite.gif' alt='Loading' title='Loading' /> Loading...<br /><br /></span>
+<div id="Centers">
+</div>
+
+@Scripts.Render("~/bundles/history")
+@section scripts {
+    <script language="javascript" src="/ContentConfig/CenterCategories.js"></script>
+    <script type="text/javascript">
+        var _categorySlug = "health-centers";
+        var _category;
+        var _jobCount = 0;
+
+        Handlebars.registerHelper('ifVideos', function (topic, options) {
+            console.log(topic);
+
+            var fnTrue = options.fn, fnFalse = options.inverse;
+            if (topic.Title.toUpperCase() == "VIDEOS") return fnTrue();
+            else return fnFalse();
+        });
+
+        $(document).ready(function () {
+            //Process Inititial State
+            var uri = window.location.pathname;
+            RouteRequest(uri);
+
+            // Bind to State Change
+            History.Adapter.bind(window, 'statechange', function () { // Note: We are using statechange instead of popstate
+                var State = History.getState(); // Note: We are using History.getState() instead of event.state
+                var uriParser = document.createElement('a');
+                uriParser.href = State.url;
+
+                //Hack for different browsers.  IE does not include the starting slush but
+                //Chrome does include the slash.
+                if (uriParser.pathname.charAt(0) != "/") uri = "/" + uriParser.pathname;
+                else uri = uriParser.pathname
+
+                RouteRequest(uri);
+            });
+        });
+
+        function RouteRequest(uri) {
+            //Define the URL Paths
+            var loadCenters = /^\/Centers\/[\w-]+\/?$/;                            //Get: /Centers/{CategorySlug}
+            var loadCentersExplorer = /^\/Centers\/[\w-]+\/[\w-]+\/?$/;            //Get: /Centers/{CategorySlug}/{CollectionSlug}/
+
+            //Route the path to the proper processes
+
+            if (loadCenters.test(uri)) {
+                //Get the slugs
+                var categorySlug = GetCategorySlug();
+                DisplayCenters(categorySlug);
+
+            } else if (loadCentersExplorer.test(uri)) {
+                //Get the slugs
+                var categorySlug = GetCategorySlug();
+                var collectionSlug = GetCollectionSlug();
+
+                $("#LoadingCenters").show();
+                $("#Centers").html("");
+
+                GetCollection(collectionSlug, ShowCenter);
+
+            } else {
+                console.log("Route not found: " + uri);
+            }
+
+        }
+
+        function GetCategorySlug() {
+            var path = window.location.pathname;
+            var selectRegex = /^\/Centers\/([\w-]+)\/?/;
+            var arr = selectRegex.exec(path);
+
+            //The entire string will match and be added to the first array element.
+            //The second element in the array represents the ([\w-).
+            if (arr.length == 2) return arr[1];
+            else return null;
+        }
+
+        function GetCollectionSlug() {
+            var path = window.location.pathname;
+            var selectRegex = /^\/Centers\/[\w-]+\/([\w-]+)\/?$/;
+            var arr = selectRegex.exec(path);
+
+            //The entire string will match and be added to the first array element.
+            //The second element in the array represents the ([\w-).
+            if (arr.length == 2) return arr[1];
+            else return null;
+        }
+
+        function DisplayCenters(categorySlug) {
+            _categorySlug = categorySlug;
+            _category = GetCategoryBySlug(_categorySlug);
+
+            if (_category != null) {
+
+                //Add placeholders for all centers
+                var source = $("#center-listing-template").html();
+                var template = Handlebars.compile(source);
+                var html = template(_category);
+                $("#Centers").html(html);
+
+                //Load each center
+                for (var i = 0; i < _category.Collections.length; i++) {
+                    _jobCount++;
+                    GetCollectionLite(_category.Collections[i].Slug, ShowCenterBlurb);
+                }
+
+            }
+        }
+
+        function GetCategoryBySlug(slug) {
+            for (var i = 0; i < ContentCategoryList.Categories.length; i++) {
+                if (ContentCategoryList.Categories[i].Slug == slug) return ContentCategoryList.Categories[i];
+            }
+            return null;
+        }
+
+        function ShowCenterBlurb(center) {
+            _jobCount--;
+
+            //Get the collection friendly information.
+            var collectionInfo;
+            for (var i = 0; i < _category.Collections.length; i++) {
+                if (_category.Collections[i].Slug == center.Slug) collectionInfo = _category.Collections[i];
+            }
+
+            var collectionModel = {
+                "ImageUri": center.ImageUri,
+                "Description": center.Description,
+                "Name": collectionInfo.Name,
+                "CategorySlug": _categorySlug,
+                "CollectionSlug": collectionInfo.Slug
+            };
+
+            //Add placeholders for all centers
+            var source = $("#center-blurb-template").html();
+            var template = Handlebars.compile(source);
+            var html = template(collectionModel);
+            var centerDiv = $("#center-" + center.Slug);
+            centerDiv.html(html);
+
+            InitializeDescriptionHandling(centerDiv);
+            centerDiv.find("a").click(function (e) {
+                var url = $(e.currentTarget).attr("href");
+
+                //Push the state change
+                History.pushState(null, null, url);
+                e.preventDefault(); //Prevent the href from executing.  Pushing the state will take care of the change.
+                window.scrollTo(0, 0); //Scroll to top so that you can see the state change.
+            });
+            $("#center-" + center.Show).show();
+
+            if (_jobCount == 0) $("#LoadingCenters").hide();
+        }
+
+        function ShowCenter(collection) {
+            console.log(collection);
+            collection = CorrectSubTopicImageUriBug(collection);
+
+            var source = $("#center-template").html();
+            var template = Handlebars.compile(source);
+            var html = template(collection);
+            $("#Centers").html(html);
+
+            $("#LoadingCenters").hide();
+        }
+
+        function CorrectSubTopicImageUriBug(collection) {
+            var imageUri = collection.ImageUri;
+            if (imageUri == null) return collection;
+
+            var firstPart = imageUri.substring(0, imageUri.lastIndexOf("/"));
+
+            console.log("First: " + firstPart);
+
+            for (var i = 0; i < collection.Items.length; i++) {
+                var subTopicImageUri = collection.Items[i].ImageUri;
+
+                if (subTopicImageUri != null && subTopicImageUri != "") {
+                    var lastIndexOfSlash = subTopicImageUri.lastIndexOf("/");
+
+                    var lastPart = subTopicImageUri.substring(lastIndexOfSlash, subTopicImageUri.length);
+                    collection.Items[i].ImageUri = firstPart + lastPart;
+
+                    console.log("Last: " + lastPart);
+                }
+            }
+
+            return collection;
+        }
+
+        function GetCollectionLite(collectionSlug, onSuccess) {
+            $.ajax({
+                type: "GET",
+                url: "/api/collectionslite/" + collectionSlug,
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (msg) {
+                    onSuccess(msg);
+                },
+                error: function (request, status, error) {
+                    console.log(error);
+                }
+            });
+        }
+
+        function GetCollection(collectionSlug, onSuccess) {
+            $.ajax({
+                type: "GET",
+                url: "/api/collections/" + collectionSlug,
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (msg) {
+                    onSuccess(msg);
+                },
+                error: function (request, status, error) {
+                    console.log(error);
+                }
+            });
+        }
+
+        function InitializeDescriptionHandling(contentBlock) {
+            var contentBlockBlurb = contentBlock.find(".contentBlockBlurb");
+            var untruncateDivText = contentBlockBlurb.text();
+
+            truncateDivText(contentBlockBlurb, 125);
+
+            var truncatedDivText = contentBlockBlurb.text();
+
+            contentBlock.mouseenter(function () {
+                var blurbheight = contentBlockBlurb.innerHeight();
+                contentBlockBlurb.stop().animate({ top: '56px', opacity: '0.9' });
+                contentBlockBlurb.text(untruncateDivText);
+            });
+
+            contentBlock.mouseleave(function () {
+                contentBlockBlurb.stop().animate({ top: "183px", opacity: '0.7' });
+                contentBlockBlurb.text(truncatedDivText);
+            });
+
+        }
+
+        function truncateDivText(divId, numChars) {
+            var str = $(divId).text();
+            if (str.length >= numChars) {
+                str = str.substring(0, numChars) + "...";
+                $(divId).text(str);
+            }
+        }
+    </script>
+    <script id="center-listing-template" type="text/x-handlebars-template">
+        <div class="content-block-area">
+            <ul>
+                {{#each Collections}}
+                <li id="center-{{Slug}}" class="hidden-initial"></li>
+                {{/each}}
+            </ul>
+        </div>
+    </script>
+    <script id="center-blurb-template" type="text/x-handlebars-template">
+        <div class="contentBlock">
+            <a href="/Centers/{{CategorySlug}}/{{CollectionSlug}}">
+                <div class="contentBlockTitle">{{Name}}</div>
+                <span class="contentBlockBlurb" style="opacity: 0.7; top: 183px;">{{Description}}</span>
+                <img src="{{ImageUri}}" alt="{{Name}}" border="0">
+            </a>
+        </div>
+    </script>
+    <script id="center-template" type="text/x-handlebars-template">
+        <div class="row">
+            <div class="col-lg-3"><img src="{{ImageUri}}" alt="{{Title}}" /></div>
+            <div class="col-lg-9">
+                <h1>{{Title}}</h1>
+                {{Description}}
+            </div>
+        </div>
+        {{#each Items}}
+            {{#ifVideos this}}
+                <div class="row">
+                    <ul>
+                        {{#each ../Items}}
+                        <li><a href="/Content/{{Bucket.Slug}}/{{Slug}}">{{Title}}</a></li>
+                        {{/each}}
+                    </ul>
+                </div>
+            {{else}}
+                <div class="row">
+                    <div class="col-sm-3">
+                        <img src="{{../ImageUri}}" alt="{{../Title}}" />
+                    </div>
+                    <div class="col-sm-3">
+                        <h4>{{../Title}}</h4>
+                        {{../Description}}
+                    </div>
+                    <div class="col-sm-3">
+                        {{../Title}}
+                        <ul>
+                            {{#each ../Items}}
+                            <li><a href="/Content/{{Bucket.Slug}}/{{Slug}}">{{Title}}</a></li>
+                            {{/each}}
+                        </ul>
+                    </div>
+                </div>
+            {{/ifVideos}}
+        {{/each}}
+    </script>
+}

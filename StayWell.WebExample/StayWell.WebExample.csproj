@@ -214,6 +214,8 @@
     <Content Include="Content\FlowplayerSkins\fonts\fpicons.woff" />
     <Content Include="ContentConfig\RelatedServicesCategories.config" />
     <Content Include="ContentConfig\VideoLibraryCategories.config" />
+    <Content Include="ContentConfig\CenterCategories.config" />
+    <Content Include="ContentConfig\CenterCategories.js" />
     <None Include="Scripts\jquery-1.10.2.intellisense.js" />
     <Content Include="Scripts\flowplayer.js" />
     <Content Include="Scripts\handlebars-v3.0.3.js" />

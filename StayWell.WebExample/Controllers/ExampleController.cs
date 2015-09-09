@@ -118,7 +118,7 @@ namespace StayWell.WebExample.Controllers
             return View();
         }
 
-        public ActionResult Centers()
+        public ActionResult Centers(string centerCategorySlug)
         {
             return View();
         }

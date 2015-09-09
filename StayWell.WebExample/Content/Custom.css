@@ -452,3 +452,64 @@ section {
 .view-all-items {
     padding-left: 15px;
 }
+
+.content-block-area ul {
+    list-style: none;
+}
+
+    .content-block-area ul li {
+        display: inline-block;
+    }
+
+.content-block-area .contentBlock {
+    border: 1px solid #ccc;
+    position: relative;
+    display: block;
+    height: 260px;
+    margin-bottom: 30px;
+    overflow: hidden;
+    width: 274px;
+}
+
+    .content-block-area .contentBlock img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        width: auto;
+        position: absolute;
+        top: 27px;
+        left: 0;
+        z-index: 1;
+    }
+
+.content-block-area .contentBlockTitle {
+    display: block;
+    width: 274px;
+    background: #e5e5e5;
+    color: black;
+    padding: 5px;
+    margin: 0;
+    font-size: 15px;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 2;
+    height: 52px;
+}
+
+
+.content-block-area .contentBlockBlurb {
+    display: block;
+    width: 274px;
+    background: #fff;
+    opacity: 0.7;
+    filter: alpha(opacity=70);
+    color: #333;
+    padding: 10px;
+    margin: 0;
+    position: absolute;
+    top: 183px;
+    left: 0;
+    z-index: 3;
+    height: 214px;
+}
