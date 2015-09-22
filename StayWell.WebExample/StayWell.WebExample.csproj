@@ -127,8 +127,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\CollectionsController.cs" />
+    <Compile Include="Api\StreamingMediaController.cs" />
     <Compile Include="Api\ContentSearchController.cs" />
-    <Compile Include="Api\ContentControlle.cs" />
+    <Compile Include="Api\ContentController.cs" />
     <Compile Include="App_Code\ApiClientExtension.cs" />
     <Compile Include="App_Code\ContentCategoryFactory.cs" />
     <Compile Include="App_Code\ContentLinkConverter.cs" />
@@ -214,7 +215,6 @@
     <Content Include="Content\FlowplayerSkins\fonts\fpicons.woff" />
     <Content Include="ContentConfig\RelatedServicesCategories.config" />
     <Content Include="ContentConfig\VideoLibraryCategories.config" />
-    <Content Include="ContentConfig\CenterCategories.config" />
     <Content Include="ContentConfig\CenterCategories.js" />
     <None Include="Scripts\jquery-1.10.2.intellisense.js" />
     <Content Include="Scripts\flowplayer.js" />
