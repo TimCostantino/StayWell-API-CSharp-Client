@@ -13,21 +13,22 @@ using System.Web.Http;
 
 namespace StayWell.WebExample.Api
 {
-    public class ContentSearchController : ApiController
+    public class StreamingMediaController : ApiController
     {
         private ApiClient _client = StayWellAPIClientFactory.GetApiClient();
 
-        [Route("api/content/{bucketSlug}/{contentSlug}")]
-        public ContentArticleResponse Get(string bucketSlug, string contentSlug)
+        [Route("api/streamingmedia/{bucketSlug}/{contentSlug}")]
+        public StreamingMediaResponse Get(string bucketSlug, string contentSlug)
         {
             //Execute the query
-            ContentArticleResponse content;
+            StreamingMediaResponse streamingMedia;
             try
             {
-                content = _client.Content.GetContent(bucketSlug, contentSlug, new GetContentOptions
+                streamingMedia = _client.StreamingMedia.GetStreamingMedia(bucketSlug, contentSlug, new GetContentOptions
                 {
-                    IncludeBody = true
-                });
+                     IncludeBody = true
+                },
+                true);
             }
             catch (ServiceException ex)
             {
@@ -38,16 +39,7 @@ namespace StayWell.WebExample.Api
                 else throw;
             }
 
-            if (content.Segments != null)
-            {
-                ContentLinkConverter linkConverter = new ContentLinkConverter();
-                foreach (var segment in content.Segments)
-                {
-                    segment.Body = linkConverter.ConvertContentLinksToRealLinks(segment.Body);
-                }
-            }
-
-            return content;
+            return streamingMedia;
         }
     }
 }

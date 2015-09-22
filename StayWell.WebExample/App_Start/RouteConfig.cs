@@ -39,8 +39,8 @@ namespace StayWell.WebExample
 
             routes.MapRoute(
               name: "Centers",
-              url: "Centers/{CenterCategorySlug}/{collectionSlug}",
-              defaults: new { controller = "Example", action = "Centers", collectionSlug = UrlParameter.Optional }
+              url: "Centers/{*folderPath}",
+              defaults: new { controller = "Example", action = "Centers" }
           );
 
             routes.MapRoute(

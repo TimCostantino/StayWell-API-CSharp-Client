@@ -20,16 +20,94 @@
         var _categorySlug = "health-centers";
         var _category;
         var _jobCount = 0;
+        var _activeCollection;
 
-        Handlebars.registerHelper('ifVideos', function (topic, options) {
-            console.log(topic);
+        Handlebars.registerHelper('ifVideos', function (topicName, options) {
 
             var fnTrue = options.fn, fnFalse = options.inverse;
-            if (topic.Title.toUpperCase() == "VIDEOS") return fnTrue();
+            if (topicName.toUpperCase() == "VIDEOS") return fnTrue();
+            else return fnFalse();
+        });
+
+        Handlebars.registerHelper('shouldDisplayTopic', function (topicName, options) {
+            var fnTrue = options.fn, fnFalse = options.inverse;
+            if (topicName.toUpperCase() == "VIDEOS") return fnFalse();
+            if (topicName.toUpperCase() == "EXTRAS") return fnFalse();
+            if (topicName.toUpperCase() == "MORE RESOURCES") return fnFalse();
+
+            return fnTrue();
+        });
+
+        Handlebars.registerHelper('ifIsSubtopic', function (item, options) {
+            var fnTrue = options.fn, fnFalse = options.inverse;
+            if (item.Type == 2) return fnTrue();
+
+            return fnFalse();
+        });
+
+        Handlebars.registerHelper("getPath", function (parentSlug, slug) {
+            var categorySlug = GetCategorySlug();
+            var collectionSlug = GetCollectionSlug();
+
+            return "/Centers/" + categorySlug + "/" + collectionSlug + "/" + parentSlug + "/" + slug;
+        });
+
+        Handlebars.registerHelper("getTopicPath", function (slug) {
+            var categorySlug = GetCategorySlug();
+            var collectionSlug = GetCollectionSlug();
+
+            return "/Centers/" + categorySlug + "/" + collectionSlug + "/" + slug;
+        });
+
+        Handlebars.registerHelper("moduloIf", function (index_count, mod, block) {
+            if (parseInt(index_count) % (mod) === 0) {
+                return block.fn(this);
+            }
+        });
+
+        Handlebars.registerHelper("moduloIfLast", function (index_count, last, mod, block) {
+            if ((parseInt(index_count) + 1) % (mod) === 0) {
+                return block.fn(this);
+            }
+
+            if (last) {
+                return block.fn(this);
+            }
+        });
+
+        Handlebars.registerHelper("divide", function (index_count, mod) {
+            return Math.floor(parseInt(index_count) / mod);
+        });
+
+        Handlebars.registerHelper('ifElseBlank', function (val, options) {
+            var fnTrue = options.fn, fnFalse = options.inverse;
+            if (val == undefined || val == "") return fnTrue();
+            else return fnFalse();
+        });
+
+        Handlebars.registerHelper('ifGreaterThan', function (value1, value2, options) {
+            var fnTrue = options.fn, fnFalse = options.inverse;
+            if (parseInt(value1) > parseInt(value2)) return fnTrue();
+            else return fnFalse();
+        });
+
+        Handlebars.registerHelper('ifLessThan', function (value1, value2, options) {
+            var fnTrue = options.fn, fnFalse = options.inverse;
+            if (parseInt(value1) < parseInt(value2)) return fnTrue();
+            else return fnFalse();
+        });
+
+        Handlebars.registerHelper('ifEqualTo', function (value1, value2, options) {
+            var fnTrue = options.fn, fnFalse = options.inverse;
+            if (value1 == value2) return fnTrue();
             else return fnFalse();
         });
 
         $(document).ready(function () {
+            //Register partials
+            Handlebars.registerPartial("contentThumbnailTemplate", $("#content-thumbnail-template").html());
+            Handlebars.registerPartial("contentThumbnailSmallTemplate", $("#content-thumbnail-small-template").html());
+
             //Process Inititial State
             var uri = window.location.pathname;
             RouteRequest(uri);
@@ -49,10 +127,14 @@
             });
         });
 
+        //------------------------------//
+        //--------Page Routing---------//
+        //----------------------------//
         function RouteRequest(uri) {
             //Define the URL Paths
             var loadCenters = /^\/Centers\/[\w-]+\/?$/;                            //Get: /Centers/{CategorySlug}
             var loadCentersExplorer = /^\/Centers\/[\w-]+\/[\w-]+\/?$/;            //Get: /Centers/{CategorySlug}/{CollectionSlug}/
+            var loadSubTopicExplorer = /^\/Centers\/[\w-]+\/[\w-]+(\/[\w-]+)+\/?$/; //Get: /Centers/{CategorySlug}/{CollectionSlug}/{SubTopicSlug}+
 
             //Route the path to the proper processes
 
@@ -62,16 +144,40 @@
                 DisplayCenters(categorySlug);
 
             } else if (loadCentersExplorer.test(uri)) {
-                //Get the slugs
-                var categorySlug = GetCategorySlug();
-                var collectionSlug = GetCollectionSlug();
+                if (_activeCollection != null) {
+                    //The collection was already requested so we don't need to
+                    //go back to the server.
+                    ShowCenter(_activeCollection);
+                } else {
+                    //This must be a direct link or refresh. As a result
+                    //there is no reference to the collection so we need to go
+                    //get one.
+                    //Get the slugs
+                    var categorySlug = GetCategorySlug();
+                    var collectionSlug = GetCollectionSlug();
 
-                $("#LoadingCenters").show();
-                $("#Centers").html("");
+                    $("#LoadingCenters").show();
+                    $("#Centers").html("");
 
-                GetCollection(collectionSlug, ShowCenter);
+                    GetCollection(collectionSlug, ShowCenter);
+                }
+            } else if (loadSubTopicExplorer.test(uri)) {
 
-            } else {
+                if (_activeCollection != null) {
+                    //The collection was already requested so we don't need to
+                    //go back to the server.
+                    ShowSubTopic(_activeCollection);
+                } else {
+                    //This must be a direct link or refresh. As a result
+                    //there is no reference to the collection so we need to go
+                    //get one.
+                    var categorySlug = GetCategorySlug();
+                    var collectionSlug = GetCollectionSlug();
+                    GetCollection(collectionSlug, ShowSubTopic);
+                }
+
+            }
+            else {
                 console.log("Route not found: " + uri);
             }
 
@@ -90,7 +196,7 @@
 
         function GetCollectionSlug() {
             var path = window.location.pathname;
-            var selectRegex = /^\/Centers\/[\w-]+\/([\w-]+)\/?$/;
+            var selectRegex = /^\/Centers\/[\w-]+\/([\w-]+)/;
             var arr = selectRegex.exec(path);
 
             //The entire string will match and be added to the first array element.
@@ -99,6 +205,27 @@
             else return null;
         }
 
+        function GetSubTopicSlugs() {
+            var path = window.location.pathname;
+            var selectRegex = /^\/Centers\/[\w-]+\/[\w-]+((\/[\w-]+)+)\/?$/;
+            var arr = selectRegex.exec(path);
+
+            //The entire string will match and be added to the first array element.
+            //The second element in the array represents the ([\w-).
+            var subTopicSplit = arr[1].split("/");
+            var subTopics = [];
+            for (var i = 0; i < subTopicSplit.length; i++) {
+                if (subTopicSplit[i] != "") subTopics.push(subTopicSplit[i]);
+            }
+
+            if (subTopics.length > 0) return subTopics;
+            else return null;
+
+        }
+
+        //------------------------------//
+        //----Show list of Centers-----//
+        //----------------------------//
         function DisplayCenters(categorySlug) {
             _categorySlug = categorySlug;
             _category = GetCategoryBySlug(_categorySlug);
@@ -120,9 +247,18 @@
             }
         }
 
-        function GetCategoryBySlug(slug) {
+        function GetMappedCollection(categegorySlug, collectionSlug) {
+            var category = GetCategoryBySlug(categegorySlug);
+
+            for (var i = 0; i < category.Collections.length; i++) {
+                if (category.Collections[i].Slug == collectionSlug) return category.Collections[i];
+            }
+            return null;
+        }
+
+        function GetCategoryBySlug(categegorySlug) {
             for (var i = 0; i < ContentCategoryList.Categories.length; i++) {
-                if (ContentCategoryList.Categories[i].Slug == slug) return ContentCategoryList.Categories[i];
+                if (ContentCategoryList.Categories[i].Slug == categegorySlug) return ContentCategoryList.Categories[i];
             }
             return null;
         }
@@ -165,16 +301,359 @@
             if (_jobCount == 0) $("#LoadingCenters").hide();
         }
 
+        //------------------------//
+        //----Show the Center----//
+        //----------------------//
         function ShowCenter(collection) {
-            console.log(collection);
+            _activeCollection = collection;
             collection = CorrectSubTopicImageUriBug(collection);
 
             var source = $("#center-template").html();
             var template = Handlebars.compile(source);
-            var html = template(collection);
+
+            var collectionView = CreateCollectionView(collection);
+
+            //Swap out the name for the root collection because the name is not always super friendly.
+            var mappedCollectionName = GetMappedCollectionName();
+            if (mappedCollectionName != null) collectionView.Title = mappedCollectionName;
+
+            var html = template(collectionView);
+            $("#Centers").html(html);
+
+            //Build the other sections
+            //ShowVideoSection(collection);
+            ShowMoreResourcesSection(collectionView);
+
+            $("#LoadingCenters").hide();
+
+            //Register links that should be internal state change link
+            $(".internalLink").click(function (e) {
+                var url = $(e.target).attr("href");
+
+                //Push the state change
+                History.pushState(null, null, url);
+                e.preventDefault(); //Prevent the href from executing.  Pushing the state will take care of the change.
+                window.scrollTo(0, 0); //Scroll to top so that you can see the state change.
+            });
+        }
+
+        function GetMappedCollectionName() {
+            var categorySlug = GetCategorySlug();
+            var collectionSlug = GetCollectionSlug();
+
+            var mappedCollection = GetMappedCollection(categorySlug, collectionSlug);
+            if (mappedCollection != null) return mappedCollection.Name;
+            else return null;
+        }
+
+        function CreateCollectionView(collection) {
+            //Initialize the Root View
+            var collectionView = GetCollectionViewFromTopic(collection);
+
+            //Iterate over Items and Create Views for each
+            for (var i = 0; i < collection.Items.length; i++) {
+
+                //Add topics and\or articles to the list
+                if (collection.Items[i].Type == 2) {
+                    var subTopicCollectionView = GetCollectionViewFromTopic(collection.Items[i]);
+
+                    //Add either topis or articles to the lists
+                    for (var c = 0; c < collection.Items[i].Items.length; c++) {
+                        if (collection.Items[i].Items[c].Type == 2) subTopicCollectionView.Topics.push(collection.Items[i].Items[c]);
+                        else subTopicCollectionView.Articles.push(collection.Items[i].Items[c]);
+                    }
+
+                    //Get extra information for the SubtopicCollectionView
+                    subTopicCollectionView.Quizzes = GetSectionContent(collection, ["Extras", subTopicCollectionView.Title, "Section Features", "Quizzes"], "Quizzes");
+                    subTopicCollectionView.Calculators = GetSectionContent(collection, ["Extras", subTopicCollectionView.Title, "Section Features", "Calculators"], "Calculators");
+                    subTopicCollectionView.Calculators = GetSectionContent(collection, ["Extras", subTopicCollectionView.Title, "Section Features", "Assessments"], "Assessments");
+                    subTopicCollectionView.Podcasts = GetSectionContent(collection, ["Extras", subTopicCollectionView.Title, "Section Features - Multimedia", "Podcasts"], "Podcasts");
+                    subTopicCollectionView.Videos = GetSectionContent(collection, ["Extras", subTopicCollectionView.Title, "Section Features - Multimedia", "Videos"], "Videos");
+                    subTopicCollectionView.Videos = PreProcessVideoThumbnails(subTopicCollectionView.Videos);
+                    console.log(subTopicCollectionView.Videos);
+
+                    subTopicCollectionView.Highlights = GetHighlghtsByCount(subTopicCollectionView, 3);
+
+                    //Get articles from one level deeper in the mix
+                    for (var c = 0; c < subTopicCollectionView.Topics.length; c++) {
+                        if (subTopicCollectionView.Topics[c].Items != null) {
+                            for (var x = 0; x < subTopicCollectionView.Topics[c].Items.length; x++) {
+                                if (subTopicCollectionView.Topics[c].Items[x].Type != 2) subTopicCollectionView.Articles.push(subTopicCollectionView.Topics[c].Items[x]);
+                            }
+                        }
+                    }
+                }
+                else collectionView.Articles.push(collection.Items[i])
+
+                collectionView.Topics.push(subTopicCollectionView);
+            }
+
+            collectionView.GettingStarted = GetSectionContent(collection, ["Extras", "Getting Started"]);
+            collectionView.Calculators = GetSectionContent(collection, ["More Resources", "Interactive Tools", "Calculators"], "Calculators");
+            collectionView.Quizzes = GetSectionContent(collection, ["More Resources", "Interactive Tools", "Quizzes"], "Quizzes");
+            collectionView.Podcasts = GetSectionContent(collection, ["More Resources", "Multimedia", "Podcasts"], "Podcasts");
+            collectionView.Assessments = GetSectionContent(collection, ["More Resources", "Multimedia", "Assessments"], "Assessments");
+            collectionView.Videos = GetSectionContent(collection, ["Videos"], "Videos");
+            collectionView.Videos = PreProcessVideoThumbnails(collectionView.Videos);
+
+            collectionView.Highlights = GetDailyHighlight(collectionView);
+
+            console.log(collectionView);
+
+            return collectionView;
+        }
+
+        function GetCollectionViewFromTopic(topic) {
+            var collectionView = {
+                "Title": topic.Title,
+                "Slug": topic.Slug,
+                "Topics": [],
+                "Articles": [],
+                "ImageUri": topic.ImageUri,
+                "Description": topic.Description,
+                "Highlights": [],
+                "GettingStarted": [],
+                "Podcasts": [],
+                "Videos": [],
+                "Quizzes": [],
+                "Assessments": [],
+                "Calculators": [],
+                "News": [] //TODO: Can't pull specific news because dynamic collections are not in place yet.
+            };
+            return collectionView;
+        }
+
+        function GetHighlghtsByCount(collectionView, count) {
+            var highlight = []
+
+            highlight = highlight.concat(GetTopItems(collectionView.Videos, count - highlight.length));
+            highlight = highlight.concat(GetTopItems(collectionView.Podcasts, count - highlight.length));
+            highlight = highlight.concat(GetTopItems(collectionView.Assessments, count - highlight.length));
+            highlight = highlight.concat(GetTopItems(collectionView.Quizzes, count - highlight.length));
+            highlight = highlight.concat(GetTopItems(collectionView.Calculators, count - highlight.length));
+
+            return highlight;
+        }
+
+        function GetTopItems(itemArray, count) {
+            var items = [];
+
+            //If array is less then count just return the array.
+            if (itemArray.length <= count) items = itemArray;
+            else {
+                for (var i = 0; i < count; i++) {
+                    items.push(itemArray[i]);
+                }
+            }
+            return itemArray;
+        }
+
+        function GetDailyHighlight(collectionView) {
+            var dailyHighlight = [];
+
+            var items = [];
+            items = items.concat(collectionView.Calculators);
+            items = items.concat(collectionView.Quizzes);
+            items = items.concat(collectionView.Podcasts);
+            items = items.concat(collectionView.Videos);
+            items = items.concat(collectionView.Assessments);
+
+            //Get constant index for an interactive tool.
+            //Leverage the day of the year to get something
+            //constant for an entire day.
+            var dayOfYear = new Date().getDayOfYear();
+            var totalCount = items.length;
+            var itemIndex = dayOfYear % totalCount;
+
+            dailyHighlight.push(items[itemIndex]);
+
+            return dailyHighlight;
+        }
+
+        function GetSectionContent(topic, titlePath, typeName) {
+            var rootTopic = GetSubTopicFromCollectionByTitle(topic, titlePath);
+
+            if (rootTopic != null && rootTopic.Items != null && rootTopic.Items.length != 0) return GetAllArticles(rootTopic, typeName);
+            else return [];
+        }
+
+        function GetAllArticles(topic, typeName) {
+            var flattenedArticles = [];
+            if (topic != null && topic.Items != null) {
+                for (var i = 0; i < topic.Items.length; i++) {
+                    if (topic.Items[i].Type == 2) {
+                        flattenedArticles = flattenedArticles.concat(GetAllArticles(topic.Items[i], typeName));
+                    }
+                    else {
+                        var itemModel = CreateItemModel(topic.Items[i], typeName);
+                        flattenedArticles.push(itemModel);
+                    }
+                }
+            }
+            return flattenedArticles;
+        }
+
+        function PreProcessVideoThumbnails(items) {
+            for (var i = 0; i < items.length; i++) {
+                items[i].ImageUri = "/Images/imagePlaceholder.png";
+            }
+            return items;
+        }
+
+        function ShowSubTopic(collection) {
+            $("#Centers").html("Sub Topic");
+
+            var topicSlugs = GetSubTopicSlugs();
+            var topic = GetSubTopicFromCollection(collection, topicSlugs);
+
+            var source = $("#sub-topic-template").html();
+            var template = Handlebars.compile(source);
+            var html = template(topic);
             $("#Centers").html(html);
 
             $("#LoadingCenters").hide();
+        }
+
+        function GetSubTopicFromCollection(collection, topicSlugs) {
+            var topic = collection;
+            for (var i = 0; i < topicSlugs.length; i++) {
+
+                var isFound = false;
+                for (var c = 0; c < topic.Items.length; c++) {;
+                    if (topic.Items[c].Slug.toUpperCase() == topicSlugs[i].toUpperCase()) {
+                        topic = topic.Items[c];
+                        isFound = true;
+                        break;
+                    }
+                }
+
+                if (!isFound) return null;
+            }
+
+            return topic;
+        }
+
+        function GetSubTopicFromCollectionByTitle(collection, titles) {
+            var topic = collection;
+            for (var i = 0; i < titles.length; i++) {
+
+                var isFound = false;
+                for (var c = 0; c < topic.Items.length; c++) {
+
+                    if (topic.Items[c].Title.toUpperCase() == titles[i].toUpperCase()) {
+                        topic = topic.Items[c];
+                        isFound = true;
+                        break;
+                    }
+                }
+
+                if (!isFound) return null;
+            }
+
+            return topic;
+        }
+
+        //------------------------//
+        //-----Video Section-----//
+        //----------------------//
+        function ShowVideoSection(collection) {
+            var videoTopic = GetSubTopicFromCollectionByTitle(collection, ["Videos"]);
+
+            if (videoTopic != null) {
+                //Build the placeholder
+                var placeHolderVideos = {
+                    "Title": videoTopic.Title,
+                    "Slug": videoTopic.Slug,
+                    "Items": []
+                };
+
+                for (var i = 0; i < videoTopic.Items.length; i++) {
+                    var videoItem = {
+                        "Title": "Loading...",
+                        "Duration": "",
+                        "Slug": videoTopic.Items[i].Slug,
+                        "BucketSlug": videoTopic.Items[i].Bucket.Slug,
+                        "ImageUri": ""
+                    };
+
+
+                    placeHolderVideos.Items.push(videoItem);
+                }
+
+                ShowVideoLibraryPlaceholder(placeHolderVideos);
+
+                var activeItem = $("#VideoSection .active");
+                LoadActiveVideoPage(activeItem);
+            }
+        }
+
+        function ShowVideoLibraryPlaceholder(videoTopic) {
+            var source = $("#video-category-template").html();
+            var template = Handlebars.compile(source);
+
+            var html = template(videoTopic);
+            $("#VideoSection").html(html);
+            $("#VideoSection").show();
+
+            $("#Carorusel-Videos").on('slide.bs.carousel', function (event) {
+                var isLoaded = $(event.relatedTarget).data("isloaded");
+
+                if (!isLoaded) {
+                    LoadActiveVideoPage($(event.relatedTarget));
+                }
+
+            });
+        }
+
+        function LoadActiveVideoPage(activeItem) {
+            //Get the active video page
+            activeItem.data("isloaded", true);
+            var panels = activeItem.find(".panel");
+
+            //Iterate over all videos and load each.
+            for (var i = 0; i < panels.length; i++) {
+                var bucketSlug = $(panels[i]).data("bucketslug");
+                var slug = $(panels[i]).data("slug");
+                LoadVideo(bucketSlug, slug);
+            }
+        }
+
+        function LoadVideo(bucketSlug, slug) {
+
+            //Get the streaming media from the bucket slug and content slug
+            $.ajax({
+                type: "GET",
+                url: "/api/streamingmedia/" + bucketSlug + "/" + slug,
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (msg) {
+                    var videoPanel = $("[data-slug='" + msg.Slug + "'][data-bucketslug='" + msg.Bucket.Slug + "']");
+
+                    var imageAsset = $(videoPanel).find("img");
+                    imageAsset.attr('src', msg.ImageUri);
+                    imageAsset.attr('alt', msg.Title);
+                    imageAsset.attr('title', msg.Title);
+                    $(videoPanel).find("a").attr('href', "/Content/" + msg.Bucket.Slug + "/" + msg.Slug);
+                    $(videoPanel).find(".placeholder-title").html(msg.Title);
+                    $(videoPanel).find(".placeholder-viewcount").html(msg.ViewCount);
+
+                    var duration = msg.Formats[0].RunningTime;
+                    if (duration != null && duration != "") {
+                        duration = GetDurationForDisplay(duration);
+                    }
+                    $(videoPanel).find(".placeholder-duration").html(duration);
+                },
+                error: function (request, status, error) {
+                    console.log(error);
+                }
+            });
+        }
+
+        function GetDurationForDisplay(runningTime) {
+            var seconds = runningTime % 60;
+            var minutes = runningTime / 60;
+
+            return Math.floor(minutes) + ":" + seconds;
         }
 
         function CorrectSubTopicImageUriBug(collection) {
@@ -182,8 +661,6 @@
             if (imageUri == null) return collection;
 
             var firstPart = imageUri.substring(0, imageUri.lastIndexOf("/"));
-
-            console.log("First: " + firstPart);
 
             for (var i = 0; i < collection.Items.length; i++) {
                 var subTopicImageUri = collection.Items[i].ImageUri;
@@ -193,13 +670,175 @@
 
                     var lastPart = subTopicImageUri.substring(lastIndexOfSlash, subTopicImageUri.length);
                     collection.Items[i].ImageUri = firstPart + lastPart;
-
-                    console.log("Last: " + lastPart);
                 }
             }
 
             return collection;
         }
+        //-----------------------//
+        //More Resources Section//
+        //-----------------------//
+        function ShowMoreResourcesSection(collectionView) {
+            //Get the model
+            var interactiveResourcesModel = CreateIntearctiveResourcesModel(collectionView);
+
+            //Display the model
+            var source = $("#more-resources-template").html();
+            var template = Handlebars.compile(source);
+            var html = template(interactiveResourcesModel);
+            $("#MoreResourcesContainer").html(html);
+
+            LoadAllVideos(collectionView.Videos);   //Async load of videos
+            RegisterMoreResourcesLinks();           //Register inline links
+
+        }
+
+        function RegisterMoreResourcesLinks() {
+            $(".interactive-filter").click(function (e) {
+                var filterType = $(e.currentTarget).attr("data-interactivetype");
+                $("#MoreResourcesSection").data("currentfilter", filterType);
+
+                //Hide everything to start.
+                $(".interactive-item").hide();
+
+                //Show all items if it's expanded.  If it's not expanded only show the top 7.
+                if ($("#MoreResourcesSection").data("isexpanded")) {
+                    if (filterType == "All") $(".interactive-item").show();
+                    else $(".interactive-item[data-interactivetype='" + filterType + "']").show();
+                } else {
+                    var items;
+                    if (filterType == "All") items = $(".interactive-item");
+                    else items = $(".interactive-item[data-interactivetype='" + filterType + "']");
+
+                    for (var i = 0; i < 7; i++) {
+                        $(items[i]).show();
+                    }
+
+                    if (items.length > 7) $(".more-resources-show-all").show();
+                    else $(".more-resources-show-all").hide();
+                }
+            });
+
+            $(".more-resources-show-all").click(function (e) {
+                $("#MoreResourcesSection").data("isexpanded", true);
+
+                var filterType = $("#MoreResourcesSection").data("currentfilter");
+                if (filterType == "All") {
+                    $(".interactive-item").show();
+                } else {
+                    $(".interactive-item[data-interactivetype='" + filterType + "']").show();
+                }
+
+                $(e.currentTarget).hide();
+            });
+        }
+
+        function CreateIntearctiveResourcesModel(collectionView) {
+            var interactiveResourcesModel = {
+                "Menu": [],
+                "Items": []
+            };
+
+            //Build the Items
+            var items = [];
+            items = items.concat(CreateInteractiveModelItem("Videos", collectionView.Videos))
+            items = items.concat(CreateInteractiveModelItem("Quizzes", collectionView.Quizzes));
+            items = items.concat(CreateInteractiveModelItem("Podcasts", collectionView.Podcasts));
+            items = items.concat(CreateInteractiveModelItem("Calculators", collectionView.Calculators));
+            items = items.concat(CreateInteractiveModelItem("Assessments", collectionView.Assessments));
+
+            //Build the Interactive Menu
+            var interactiveMenu = [];
+            if (items.length > 0) interactiveMenu.push({ "Title": "All", "Count": items.length });
+            if (collectionView.Videos.length > 0) interactiveMenu.push({ "Title": "Videos", "Count": collectionView.Videos.length });
+            if (collectionView.Quizzes.length > 0) interactiveMenu.push({ "Title": "Quizzes", "Count": collectionView.Quizzes.length });
+            if (collectionView.Podcasts.length > 0) interactiveMenu.push({ "Title": "Podcasts", "Count": collectionView.Podcasts.length });
+            if (collectionView.Calculators.length > 0) interactiveMenu.push({ "Title": "Calculators", "Count": collectionView.Calculators.length });
+            if (collectionView.Assessments.length > 0) interactiveMenu.push({ "Title": "Assessments", "Count": collectionView.Assessments.length });
+
+            //Pull it together
+            interactiveResourcesModel.Items = items;
+            interactiveResourcesModel.Menu = interactiveMenu;
+
+            return interactiveResourcesModel;
+        }
+
+        function CreateInteractiveModelItem(typeName, items) {
+            var interactiveContentModel = [];
+            for (var i = 0; i < items.length; i++) {
+                interactiveContentModel.push(CreateItemModel(items[i], typeName));
+            }
+            return interactiveContentModel;
+        }
+
+        function CreateItemModel(item, typeName) {
+            var model = {
+                "Type": item.Type,
+                "TypeName": typeName,
+                "Bucket": item.Bucket,
+                "Slug": item.Slug,
+                "Description": truncateText(item.Description, 140),
+                "Title": item.Title,
+                "ImageUri": item.ImageUri
+            };
+
+            return model;
+        }
+
+        function LoadAllVideos(videos) {
+            for (var i = 0; i < videos.length; i++) {
+                GetVideo(videos[i].Bucket.Slug, videos[i].Slug, function (item) {
+                    var videoPanel = $("[data-slug='" + item.Slug + "'][data-bucketslug='" + item.Bucket.Slug + "']");
+
+                    var imageAsset = $(videoPanel).find("img");
+                    imageAsset.attr('src', item.ImageUri);
+                });
+            }
+        }
+
+        var _dayOfYearOffsets = [
+          0,
+          31, // + 31 jan
+          59, // + 28 feb *
+          90, // + 31 mar
+          120, // + 30 apr
+          151, // + 31 may
+          181, // + 30 jun
+          212, // + 31 jul
+          243, // + 31 aug
+          273, // + 30 sep
+          304, // + 31 oct
+          334 // + 30 nov
+        ];
+
+        var _dayOfLeapYearOffsets = [
+          0,
+          31, // + 31 jan
+          59, // + 29 feb *
+          91, // + 31 mar
+          121, // + 30 apr
+          152, // + 31 may
+          182, // + 30 jun
+          213, // + 31 jul
+          244, // + 31 aug
+          274, // + 30 sep
+          305, // + 31 oct
+          335 // + 30 nov
+        ];
+
+        Date.prototype.isLeapYear = function () {
+            yr = this.getFullYear();
+            return !((yr % 4) || (!(yr % 100) && (yr % 400)));
+        }
+
+        Date.prototype.getDayOfYear = function () {
+            var m = this.getMonth(),
+              d = this.getDay(),
+              ly = this.isLeapYear(),
+              day = ly ? (_dayOfLeapYearOffsets[m] + d) : (_dayOfYearOffsets[m] + d);
+            return day;
+        }
+
 
         function GetCollectionLite(collectionSlug, onSuccess) {
             $.ajax({
@@ -220,6 +859,23 @@
             $.ajax({
                 type: "GET",
                 url: "/api/collections/" + collectionSlug,
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (msg) {
+                    onSuccess(msg);
+                },
+                error: function (request, status, error) {
+                    console.log(error);
+                }
+            });
+        }
+
+        function GetVideo(bucketSlug, slug, onSuccess) {
+
+            //Get the streaming media from the bucket slug and content slug
+            $.ajax({
+                type: "GET",
+                url: "/api/streamingmedia/" + bucketSlug + "/" + slug,
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 success: function (msg) {
@@ -259,6 +915,13 @@
                 $(divId).text(str);
             }
         }
+
+        function truncateText(text, numChars) {
+            if (text.length >= numChars) {
+                text = text.substring(0, numChars) + "...";
+            }
+            return text;
+        }
     </script>
     <script id="center-listing-template" type="text/x-handlebars-template">
         <div class="content-block-area">
@@ -269,6 +932,7 @@
             </ul>
         </div>
     </script>
+
     <script id="center-blurb-template" type="text/x-handlebars-template">
         <div class="contentBlock">
             <a href="/Centers/{{CategorySlug}}/{{CollectionSlug}}">
@@ -278,42 +942,225 @@
             </a>
         </div>
     </script>
+
     <script id="center-template" type="text/x-handlebars-template">
-        <div class="row">
-            <div class="col-lg-3"><img src="{{ImageUri}}" alt="{{Title}}" /></div>
-            <div class="col-lg-9">
+        <div class="row center-feature">
+            <div class="col-lg-4"><img src="{{ImageUri}}" alt="{{Title}}" class="center-feature-image" /></div>
+            <div class="col-lg-4">
                 <h1>{{Title}}</h1>
-                {{Description}}
+                <p>
+                    {{Description}}
+                </p>
+            </div>
+            <div class="col-lg-4 column">
+                <h2>Getting Started</h2>
+                <ul>
+                    {{#each GettingStarted}}
+                    <li>
+                        <a href="/Content/{{Bucket.Slug}}/{{Slug}}">{{Title}}</a>
+                    </li>
+                    {{/each}}
+                </ul>
+                <br />
+                <h2>Daily Highlight</h2>
+                {{#each Highlights}}
+                <ul>
+                    <li>{{> contentThumbnailSmallTemplate}}</li>
+                </ul>
+                {{/each}}
             </div>
         </div>
-        {{#each Items}}
-            {{#ifVideos this}}
+        {{#each Topics}}
+        {{#shouldDisplayTopic Title}}
+        <div class="row center-topic">
+            <div class="col-sm-3">
+                <img src="{{../ImageUri}}" class="center-topic-image" alt="{{Title}}" />
+            </div>
+            <div class="col-sm-9">
                 <div class="row">
-                    <ul>
-                        {{#each ../Items}}
-                        <li><a href="/Content/{{Bucket.Slug}}/{{Slug}}">{{Title}}</a></li>
-                        {{/each}}
-                    </ul>
-                </div>
-            {{else}}
-                <div class="row">
-                    <div class="col-sm-3">
-                        <img src="{{../ImageUri}}" alt="{{../Title}}" />
-                    </div>
-                    <div class="col-sm-3">
+                    <div class="col-sm-4">
                         <h4>{{../Title}}</h4>
                         {{../Description}}
                     </div>
-                    <div class="col-sm-3">
-                        {{../Title}}
+                    {{#ifGreaterThan ../Topics.length 0}}
+                    <div class="col-sm-4">
+                        Explore Topics
                         <ul>
-                            {{#each ../Items}}
-                            <li><a href="/Content/{{Bucket.Slug}}/{{Slug}}">{{Title}}</a></li>
+                            {{#each ../../Topics}}
+                            {{#ifLessThan @@index 5}}
+                            <li><a href="{{getPath ../../../../Slug ../Slug}}" class="internalLink">{{../Title}}</a></li>
+                            {{/ifLessThan}}
                             {{/each}}
                         </ul>
+                        {{#ifGreaterThan ../../Topics.length 4}}
+                        <a href="{{getTopicPath ../../../Slug}}" class="internalLink">See all Topics</a>
+                        {{/ifGreaterThan}}
+                    </div>
+                    <div class="col-sm-4">
+                        Explore Articles
+                        <ul>
+                            {{#each ../../Articles}}
+                            {{#ifLessThan @@index 5}}
+                            <li><a href="/Content/{{../Bucket.Slug}}/{{../Slug}}">{{../Title}}</a></li>
+                            {{/ifLessThan}}
+                            {{/each}}
+                        </ul>
+                        {{#ifGreaterThan Topics.length 4}}
+                        <a href="{{getTopicPath ../../../Slug}}" class="internalLink">See all Articles</a>
+                        {{/ifGreaterThan}}
+                    </div>
+                    {{else}}
+                    {{#each ../../Articles}}
+                    {{#ifLessThan @@index 10}}
+                    {{#moduloIf @@index 5}}
+                    <div class="col-sm-4">
+                        {{#if @@first}}Explore Articles{{else}}&nbsp;{{/if}}
+                        <ul>
+                            {{/moduloIf}}
+                            <li><a href="/Content/{{../Bucket.Slug}}/{{../Slug}}">{{../Title}}</a></li>
+                            {{#moduloIfLast @@index @@last 5}}
+                        </ul>
+                        {{#ifEqualTo @@index 9}}
+                        <a href="{{getTopicPath ../../../../../../Slug}}" class="internalLink">See all Articles</a>
+                        {{/ifEqualTo}}
+                    </div>
+                    {{/moduloIfLast}}
+                    {{/ifLessThan}}
+
+                    {{/each}}
+                    {{/ifGreaterThan}}
+                </div>
+                {{#ifGreaterThan ../Highlights.length 0}}
+                <hr />
+                <div class="row">
+                    {{#each ../../Highlights}}
+                    <div class="col-sm-4">
+                        {{> contentThumbnailSmallTemplate }}
+                    </div>
+                    {{/each}}
+                </div>
+                {{/ifGreaterThan}}
+            </div>
+        </div>
+        {{/shouldDisplayTopic}}
+        {{/each}}
+        <div id="MoreResourcesContainer">
+        </div>
+    </script>
+
+    <script id="video-category-template" type="text/x-handlebars-template">
+        <a href="{{getTopicPath Slug}}" class="section-link">{{Title}} ({{Items.length}})<span class="right-button"><span class="glyphicon glyphicon-chevron-right"></span></span></a>
+        <div id="Carorusel-Videos" class="carousel slide video-library" data-interval="false">
+            <div class="carousel-inner">
+                {{#each Items}}
+                {{#moduloIf @@index 4}}
+                <div class="item {{#if @@first}}active{{/if}}" data-page="{{divide @@index 4}}" data-isloaded="{{#if @@first}}true{{else}}false{{/if}}">
+                    <div class="row">
+                        {{/moduloIf}}
+                        <div class="panel col-xs-3" data-slug="{{Slug}}" data-bucketslug="{{BucketSlug}}">
+                            <div class="panel-body"><a href="{{#ifElseBlank this.Slug}}#{{else}}/Content/{{../BucketSlug}}/{{../Slug}}{{/ifElseBlank}}" class="media-link"><img alt="{{Title}}" title="{{Title}}" class="img-responsive media-thumbnail" src="{{#ifElseBlank ImageUri}}/Images/imagePlaceholder.png{{else}}{{../ImageUri}}{{/ifElseBlank}}" style="display: block;"><span class="media-icon"><span class="glyphicon glyphicon-play"></span> <span class="placeholder-duration">{{Duration}}</span></span></a></div>
+                            <div class="panel-footer"><strong><span class="placeholder-title">{{Title}}</span></strong><br /><span class="meta-data">Views: <span class="placeholder-viewcount">{{ViewCount}}</span></span></div>
+                        </div>
+                        {{#moduloIfLast @@index @@last 4}}
                     </div>
                 </div>
-            {{/ifVideos}}
-        {{/each}}
+                {{/moduloIfLast}}
+                {{/each}}
+            </div>
+            {{#ifGreaterThan Items.length 4}}
+            <a class="left carousel-control" href="#Carorusel-Videos" data-slide="prev"><span class="glyphicon glyphicon-chevron-left"></span></a>
+            <a class="right carousel-control" href="#Carorusel-Videos" data-slide="next"><span class="glyphicon glyphicon-chevron-right"></span></a>
+            {{/ifGreaterThan}}
+
+        </div>
+    </script>
+
+    <script id="sub-topic-template" type="text/x-handlebars-template">
+        <h1>{{Title}}</h1>
+        <ul>
+            {{#each Items}}
+            <li><a href="#">{{Title}}</a></li>
+            {{/each}}
+        </ul>
+    </script>
+
+    <script id="more-resources-template" type="text/x-handlebars-template">
+        <div class="row" id="MoreResourcesSection" data-currentfilter="All" data-isexpanded="false">
+            <div class="col-sm-12 sub-section more-resources">
+                <a href="#" class="section-link">Interactive Content ({{Items.length}})<span class="right-button"><span class="glyphicon glyphicon-chevron-right"></span></span></a>
+                <div class="row block-display">
+                    <!-- Build the Interactive Content Menu-->
+                    <div class="panel col-xs-3 block-panel">
+                        <div class="block-top block-menu">
+                            <h3>Filter Interactive Content</h3>
+                            <ul>
+                                {{#each Menu}}
+                                <li><a class="clickable-link interactive-filter" data-interactivetype="{{Title}}">{{Title}} ({{Count}})</a></li>
+                                {{/each}}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Display all interactive content -->
+                    {{#each Items}}
+                    <div class="panel col-xs-3 block-panel interactive-item {{#ifGreaterThan @@index 6}}hidden-initial{{/ifGreaterThan}}" data-interactivetype="{{TypeName}}">
+                        <div class="block-top">
+                            {{> contentThumbnailTemplate }}
+                        </div>
+                    </div>
+                    {{/each}}
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="center">
+                    <a class="show-all-button clickable-link more-resources-show-all"><span class="glyphicon glyphicon-chevron-down"></span> Show All Interactive Content <span class="glyphicon glyphicon-chevron-down"></span></a>
+                </div>
+            </div>
+        </div>
+    </script>
+
+    <script id="content-thumbnail-template" type="text/x-handlebars-template">
+        {{#ifElseBlank ImageUri}}
+        <a href="/Content/{{../Bucket.Slug}}/{{../Slug}}">
+            <h4>{{../TypeName}}</h4>
+            <h3>{{../Title}}</h3>
+            {{{../Description}}}
+        </a>
+        {{else}}
+        <div class="content-thumbnail">
+            <a href="/Content/{{../Bucket.Slug}}/{{../Slug}}" data-bucketslug="{{../Bucket.Slug}}" data-slug="{{../Slug}}">
+                <h4>{{../TypeName}}</h4>
+                <span class="media-link">
+                    <img alt="{{../Title}}" title="{{../Title}}" class="img-responsive" src="{{../ImageUri}}" style="display: block;"><span class="media-icon"><span class="glyphicon glyphicon-play"></span> {{../Duration}}</span>
+                </span>
+            </a>
+            <a href="/Content/{{../Bucket.Slug}}/{{../Slug}}">
+                <h3 class="media-link-title">{{../Title}}</h3>
+            </a>
+        </div>
+        {{/ifElseBlank}}
+    </script>
+
+    <script id="content-thumbnail-small-template" type="text/x-handlebars-template">
+        <div class="content-thumbnail-small">
+            {{#ifElseBlank ImageUri}}
+            <a href="/Content/{{../Bucket.Slug}}/{{../Slug}}">
+                {{#ifEqualTo ../TypeName "Quizzes"}}<span class="glyphicon glyphicon-question-sign"></span> {{/ifEqualTo}}
+                {{#ifEqualTo ../TypeName "Assessments"}}<span class="glyphicon glyphicon-question-sign"></span> {{/ifEqualTo}}
+                {{#ifEqualTo ../TypeName "Calculators"}}<span class="glyphicon glyphicon-list-alt"></span> {{/ifEqualTo}}
+                {{#ifEqualTo ../TypeName "Podcasts"}}<span class="glyphicon glyphicon-play-circle"></span> {{/ifEqualTo}}
+                {{../Title}}
+            </a>
+            {{else}}
+            <a href="/Content/{{../Bucket.Slug}}/{{../Slug}}" data-bucketslug="{{../Bucket.Slug}}" data-slug="{{../Slug}}">
+                <span class="media-link">
+                    <img alt="{{../Title}}" title="{{../Title}}" class="img-responsive" src="{{../ImageUri}}" style="display: block;"><span class="media-icon"><span class="glyphicon glyphicon-play"> {{../Duration}}</span></span>
+                </span>
+                {{../Title}}
+            </a>
+            {{/ifElseBlank}}
+        </div>
     </script>
 }
