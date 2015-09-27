@@ -124,6 +124,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Plugins\Shared\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\CollectionsController.cs" />
@@ -200,6 +201,7 @@
     <Content Include="Content\FlowplayerSkins\img\white_rtl.png" />
     <Content Include="Content\FlowplayerSkins\minimalist.css" />
     <Content Include="Content\FlowplayerSkins\playful.css" />
+    <Content Include="Content\Test.css" />
     <Content Include="Content\yamm.css" />
     <Content Include="favicon.ico" />
     <Content Include="fonts\glyphicons-halflings-regular.svg" />
@@ -208,6 +210,17 @@
     <Content Include="Images\ajax-loader-horizontal-lite.gif" />
     <Content Include="Images\ajax-loader-indicator-lite.gif" />
     <Content Include="Images\imagePlaceholder.png" />
+    <Content Include="Plugins\Centers\content-template.html" />
+    <Content Include="Plugins\Centers\center-listing-template.html" />
+    <Content Include="Plugins\Centers\center-blurb-template.html" />
+    <Content Include="Plugins\Centers\center-template.html" />
+    <Content Include="Plugins\Centers\content-thumbnail-small-template.html" />
+    <Content Include="Plugins\Centers\more-resources-template.html" />
+    <Content Include="Plugins\Centers\content-thumbnail-template.html" />
+    <Content Include="Plugins\Centers\sub-topic-template.html" />
+    <Content Include="Plugins\Plugins.css" />
+    <Content Include="Plugins\plugins.sdk.js" />
+    <Content Include="Plugins\PluginTest.html" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
     <Content Include="Content\FlowplayerSkins\fonts\fpicons.eot" />
@@ -225,6 +238,8 @@
     <Content Include="Scripts\jquery.mixitup.js" />
     <Content Include="Scripts\JSONP.js" />
     <Content Include="Scripts\modernizr-2.6.2.js" />
+    <Content Include="Plugins\Centers\plugins.centers.js" />
+    <Content Include="Scripts\require.js" />
     <Content Include="Scripts\respond.js" />
     <Content Include="Scripts\respond.min.js" />
     <Content Include="Scripts\_references.js" />
@@ -270,6 +285,7 @@
     <Content Include="Views\Example\TopicExplorer.cshtml" />
     <Content Include="Views\Example\AtoZ.cshtml" />
     <Content Include="Views\HowTo\SearchByPublishedDate.cshtml" />
+    <Content Include="Views\Example\CenterPlugin.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StayWell.ClientFramework\StayWell.ClientFramework.csproj">

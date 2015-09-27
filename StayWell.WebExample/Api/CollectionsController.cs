@@ -29,7 +29,7 @@ namespace StayWell.WebExample.Api
         public CollectionResponse GetLite(string collectionSlug)
         {
             //Execute the query
-            CollectionResponse collection = _client.Collections.GetCollection(collectionSlug, false, false, false);
+            CollectionResponse collection = _client.Collections.GetCollection(collectionSlug, true, false, false);
             return collection;
         }
     }
