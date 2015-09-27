@@ -201,7 +201,6 @@
     <Content Include="Content\FlowplayerSkins\img\white_rtl.png" />
     <Content Include="Content\FlowplayerSkins\minimalist.css" />
     <Content Include="Content\FlowplayerSkins\playful.css" />
-    <Content Include="Content\Test.css" />
     <Content Include="Content\yamm.css" />
     <Content Include="favicon.ico" />
     <Content Include="fonts\glyphicons-halflings-regular.svg" />
