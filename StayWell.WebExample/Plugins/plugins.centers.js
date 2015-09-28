@@ -111,7 +111,7 @@
         };
 
         _config.baseApiPath = GetConfigValueIfSet("data-base-api-path", _config.baseApiPath);
-        _config.categorySlug = GetConfigValueIfSet("data-base-categry-slug", _config.categorySlug);
+        _config.categorySlug = GetConfigValueIfSet("data-category-slug", _config.categorySlug);
         _config.inlineMode = GetConfigValueBoolIfSet("data-inline-mode", _config.inlineMode);
         _config.templatePath = GetConfigValueIfSet("data-template-path", _config.templatePath);
         _config.contentDisplayPath = GetConfigValueIfSet("data-content-display-path", _config.contentDisplayPath);
