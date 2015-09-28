@@ -329,7 +329,9 @@
             DisplayCenters(categorySlug);
 
         } else if (loadCentersExplorer.test(_currentPath)) {
-            if (_activeCollection != null) {
+            var collectionSlug = GetCollectionSlug();
+            
+            if (_activeCollection != null && _activeCollection.Slug == collectionSlug) {
                 //The collection was already requested so we don't need to
                 //go back to the server.
                 ShowCenter(_activeCollection);
@@ -339,7 +341,6 @@
                 //get one.
                 //Get the slugs
                 var categorySlug = GetCategorySlug();
-                var collectionSlug = GetCollectionSlug();
 
                 $("#LoadingCenters").show();
                 _element.html("");
