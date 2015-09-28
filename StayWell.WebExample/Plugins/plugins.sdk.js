@@ -12,8 +12,13 @@
 
         //Try to load the plugins
         var divElement = $(".staywell-centers");
-        if (divElement != null) {
+        if (divElement != null && divElement.length>0) {
             CenterPlugin.Initialize(divElement, applicationId);
+        }
+
+        var divElement = $(".staywell-atoz");
+        if (divElement != null && divElement.length > 0) {
+            AtoZPlugin.Initialize(divElement, applicationId);
         }
     }
 

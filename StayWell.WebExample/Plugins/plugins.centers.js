@@ -234,6 +234,7 @@
         pathTemplate += _config.contentDisplayPath;
 
         var template = Handlebars.compile(pathTemplate);
+
         return template(contentModel);
     }
 
@@ -789,8 +790,7 @@
         //Create the model
         var subTopicCollectionView = CreateSubTopicCollectionView(collection, topic)
 
-        //GetTemplate("/Plugins/Centers/sub-topic-template.html", function (source) {
-        GetTemplate("sub-topic-template", function (source) {
+        GetTemplate("center-sub-topic-template", function (source) {
             var template = Handlebars.compile(source);
             var html = template(subTopicCollectionView);
             _element.html(html);
@@ -914,7 +914,7 @@
 
         //Display the model
         //GetTemplate("/Plugins/Centers/more-resources-template.html", function (source) {
-        GetTemplate("more-resources-template", function (source) {
+        GetTemplate("center-more-resources-template", function (source) {
             var template = Handlebars.compile(source);
             var html = template(interactiveResourcesModel);
             $("#MoreResourcesContainer").html(html);
@@ -1059,21 +1059,6 @@
                     internalLink.attr("href", uri);
                     internalLink.addClass("internalLink");
                 }
-
-                var submitButton = _element.find(":button[value='Submit']");
-                if (submitButton != null) {
-                    $(submitButton).click(function (e) {
-                        //location.reload();
-                    });
-                }
-
-                //var resetButton = _element.find(":button[value='Reset']");
-                //if (resetButton != null) {
-                //    $(resetButton).removeAttr('onclick');
-                //    $(resetButton).click(function (e) {
-                //        location.reload();
-                //    }); 
-                //}
 
                 RegisterInternalLinks();
             });

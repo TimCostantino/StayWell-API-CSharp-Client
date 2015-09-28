@@ -124,7 +124,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
-    <Folder Include="Plugins\Shared\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\CollectionsController.cs" />
@@ -209,14 +208,21 @@
     <Content Include="Images\ajax-loader-horizontal-lite.gif" />
     <Content Include="Images\ajax-loader-indicator-lite.gif" />
     <Content Include="Images\imagePlaceholder.png" />
-    <Content Include="Plugins\Centers\content-template.html" />
-    <Content Include="Plugins\Centers\center-listing-template.html" />
-    <Content Include="Plugins\Centers\center-blurb-template.html" />
-    <Content Include="Plugins\Centers\center-template.html" />
-    <Content Include="Plugins\Centers\content-thumbnail-small-template.html" />
-    <Content Include="Plugins\Centers\more-resources-template.html" />
-    <Content Include="Plugins\Centers\content-thumbnail-template.html" />
-    <Content Include="Plugins\Centers\sub-topic-template.html" />
+    <Content Include="Plugins\atoz-loading-template.html" />
+    <Content Include="Plugins\atoz-letter-template.html" />
+    <Content Include="Plugins\atoz-listing-placeholder-template.html" />
+    <Content Include="Plugins\atoz-listing-template.html" />
+    <Content Include="Plugins\atoz-initialization-template.html" />
+    <Content Include="Plugins\content-template.html" />
+    <Content Include="Plugins\center-listing-template.html" />
+    <Content Include="Plugins\center-blurb-template.html" />
+    <Content Include="Plugins\center-template.html" />
+    <Content Include="Plugins\content-thumbnail-small-template.html" />
+    <Content Include="Plugins\center-more-resources-template.html" />
+    <Content Include="Plugins\content-thumbnail-template.html" />
+    <Content Include="Plugins\plugins.atoz.js" />
+    <Content Include="Plugins\plugins.content.js" />
+    <Content Include="Plugins\center-sub-topic-template.html" />
     <Content Include="Plugins\Plugins.css" />
     <Content Include="Plugins\plugins.sdk.js" />
     <Content Include="Plugins\PluginTest.html" />
@@ -228,6 +234,7 @@
     <Content Include="ContentConfig\RelatedServicesCategories.config" />
     <Content Include="ContentConfig\VideoLibraryCategories.config" />
     <Content Include="ContentConfig\CenterCategories.js" />
+    <Content Include="Plugins\plugins.handlebarhelpers" />
     <None Include="Scripts\jquery-1.10.2.intellisense.js" />
     <Content Include="Scripts\flowplayer.js" />
     <Content Include="Scripts\handlebars-v3.0.3.js" />
@@ -237,7 +244,7 @@
     <Content Include="Scripts\jquery.mixitup.js" />
     <Content Include="Scripts\JSONP.js" />
     <Content Include="Scripts\modernizr-2.6.2.js" />
-    <Content Include="Plugins\Centers\plugins.centers.js" />
+    <Content Include="Plugins\plugins.centers.js" />
     <Content Include="Scripts\require.js" />
     <Content Include="Scripts\respond.js" />
     <Content Include="Scripts\respond.min.js" />
@@ -282,9 +289,9 @@
     <Content Include="Views\License\DisplayServiceLines.cshtml" />
     <Content Include="Views\License\_PublicDemoWarningMessage.cshtml" />
     <Content Include="Views\Example\TopicExplorer.cshtml" />
-    <Content Include="Views\Example\AtoZ.cshtml" />
     <Content Include="Views\HowTo\SearchByPublishedDate.cshtml" />
     <Content Include="Views\Example\CenterPlugin.cshtml" />
+    <Content Include="Views\Example\AtoZPlugin.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StayWell.ClientFramework\StayWell.ClientFramework.csproj">

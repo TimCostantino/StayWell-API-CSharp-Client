@@ -1,6 +1,6 @@
 ﻿<div class="row center-feature">
     {{#ifElseBlank ImageUri}}{{else}}<div class="col-lg-3"><img src="{{../ImageUri}}" alt="{{../Title}}" class="center-feature-image" /></div>{{/ifElseBlank}}
-    <div class="col-lg-5">
+    <div class="{{#ifElseBlank ImageUri}}col-lg-8{{else}}col-lg-5{{/ifElseBlank}}">
         <h3>{{Title}}</h3>
         <p>
             {{Description}}

@@ -133,7 +133,7 @@ namespace StayWell.WebExample.Controllers
             return View();
         }
 
-        public ActionResult AtoZ()
+        public ActionResult AtoZPlugin()
         {
             return View();
         }
